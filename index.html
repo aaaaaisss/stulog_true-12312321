@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="ja" style="color-scheme:dark;">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>すたろぐ Study Binder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#14161b; --surface:#1d2027; --surface2:#262a33; --ink:#eef0ee; --muted:#8b93a0; --line:#31353f;
+  --jp:#e2574c; --math:#3b82f6; --en:#eab308; --sci:#22c55e; --soc:#8b5cf6; --all:#8a8f98;
+  --r:18px; --rs:10px;
+  --shadow:0 8px 24px rgba(0,0,0,.4);
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent; min-width:0;}
+html,body{overflow-x:hidden; overscroll-behavior-x:none; touch-action:pan-y;}
+body{margin:0; background:var(--bg); font-family:'Noto Sans JP',sans-serif; color:var(--ink);}
+.app{max-width:480px; margin:0 auto; min-height:100vh; background:var(--bg); position:relative; padding-bottom:82px; overflow-x:hidden;}
+h1,h2,h3{font-family:'Zen Maru Gothic',sans-serif; margin:0;}
+button{font-family:inherit; cursor:pointer; border:none; background:none; color:var(--ink); flex-shrink:0;}
+input,select,textarea{font-family:inherit; background:var(--surface2); color:var(--ink); border:1px solid var(--line); font-size:16px;}
+::-webkit-scrollbar{display:none;}
+
+/* ===== ヘッダー ===== */
+.topbar{padding:22px 20px 14px;}
+.topbar .date{font-family:'Zen Maru Gothic',sans-serif; font-weight:900; font-size:22px;}
+.topbar .sub{font-size:12px; color:var(--muted); margin-top:2px;}
+
+/* ===== タブ本体 ===== */
+.view{display:none; padding:0 16px 20px; animation:fadein .25s ease; overflow-x:hidden;}
+.view.active{display:block;}
+@keyframes fadein{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);}}
+
+.card{background:var(--surface); border-radius:var(--r); box-shadow:var(--shadow); padding:18px; margin-bottom:14px;}
+
+/* ===== タイマー ===== */
+.timerWrap{display:flex; flex-direction:column; align-items:center; padding:26px 18px 10px;}
+.ring{position:relative; width:200px; height:200px; max-width:100%;}
+.ring svg{transform:rotate(-90deg);}
+.ring circle{fill:none; stroke-width:12;}
+.ring .bg{stroke:var(--surface2);}
+.ring .fg{stroke:#3b82f6; stroke-linecap:round; transition:stroke-dashoffset 1s linear;}
+.ring .label{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;}
+.ring .label .t{font-family:'Zen Maru Gothic',sans-serif; font-size:36px; font-weight:900;}
+.ring .label .s{font-size:12px; color:var(--muted); margin-top:4px;}
+.timerBtns{display:flex; gap:10px; margin-top:18px;}
+.pill{padding:12px 20px; border-radius:999px; font-weight:700; font-size:14px; transition:transform .15s; white-space:nowrap; flex-shrink:0;}
+.pill:active{transform:scale(.94);}
+.pill.primary{background:#3b82f6; color:#fff;}
+.pill.ghost{background:var(--surface2); color:var(--ink);}
+.timerDone{text-align:center; color:#22c55e; font-weight:700; font-size:13px; min-height:18px; margin-top:8px;}
+
+/* ===== 記録・手動ボタン ===== */
+.recordBtn{width:100%; padding:16px; border-radius:var(--r); background:linear-gradient(135deg,#3b82f6,#6366f1); color:#fff; font-weight:700; font-size:15px; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:var(--shadow);}
+.recordBtn:active{transform:scale(.98);}
+
+/* ===== Todo ===== */
+.todoRow{display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--line);}
+.todoRow:last-child{border-bottom:none;}
+.chk{width:24px; height:24px; border-radius:7px; border:2px solid var(--line); flex:none; display:flex; align-items:center; justify-content:center; transition:.15s; font-size:13px;}
+.chk.on{background:#22c55e; border-color:#22c55e; color:#fff;}
+.todoRow .tx{flex:1; font-size:14px; overflow-wrap:anywhere;}
+.todoRow.done .tx{text-decoration:line-through; color:var(--muted);}
+.todoAdd{display:flex; gap:8px; margin-top:10px; align-items:center;}
+.todoAdd input{flex:1; min-width:0; border-radius:var(--rs); padding:10px 12px;}
+.roundBtn{width:40px; height:40px; border-radius:50%; background:#3b82f6; color:#fff; font-size:20px; flex-shrink:0; display:flex; align-items:center; justify-content:center;}
+.roundBtn:active{transform:scale(.9); }
+.iconDel{width:30px; height:30px; border-radius:8px; background:var(--surface2); color:#e2574c; font-size:14px; flex-shrink:0; display:flex; align-items:center; justify-content:center;}
+.iconDel:active{transform:scale(.9);}
+
+/* ===== 教科タブ ===== */
+.subjTabs{display:flex; gap:6px; flex-wrap:wrap;}
+.stab{padding:9px 14px; border-radius:10px; font-size:13px; font-weight:700; opacity:.5; transition:.15s;}
+.stab.active{opacity:1; box-shadow:0 4px 10px rgba(0,0,0,.35); transform:translateY(-2px);}
+
+/* ===== ボトムナビ ===== */
+.nav{position:fixed; left:50%; transform:translateX(-50%); bottom:0; width:100%; max-width:480px; background:var(--surface); display:flex; border-top:1px solid var(--line); padding:8px 4px calc(8px + env(safe-area-inset-bottom)); z-index:40;}
+.navBtn{flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; font-size:10px; color:var(--muted); padding:4px 0; transition:.15s;}
+.navBtn .ic{font-size:20px;}
+.navBtn.active{color:var(--ink); transform:translateY(-2px);}
+
+/* ===== モーダル ===== */
+.modalBg{position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:flex-end; justify-content:center; z-index:50;}
+.modalBg.show{display:flex;}
+.modal{background:var(--surface); width:100%; max-width:480px; border-radius:22px 22px 0 0; padding:20px 18px calc(20px + env(safe-area-inset-bottom)); max-height:88vh; overflow-y:auto; overflow-x:hidden; animation:slideup .28s cubic-bezier(.2,.9,.3,1); position:relative;}
+@keyframes slideup{from{transform:translateY(30px); opacity:0;} to{transform:translateY(0); opacity:1;}}
+.modal h3{font-size:17px; margin-bottom:14px;}
+.field{margin-bottom:14px;}
+.field label{font-size:12px; color:var(--muted); display:block; margin-bottom:6px;}
+.field input,.field select{width:100%; border-radius:var(--rs); padding:10px 12px;}
+.field.row2{display:flex; gap:10px;}
+.field.row2 > div{flex:1;}
+.saveBtn{width:100%; padding:14px; border-radius:14px; background:#22c55e; color:#fff; font-weight:700; font-size:15px; margin-top:6px;}
+.saveBtn:active{transform:scale(.98);}
+.closeX{position:absolute; right:18px; top:16px; font-size:20px; color:var(--muted);}
+
+/* ===== 時間ホイールピッカー ===== */
+.wheelWrap{position:relative; display:flex; justify-content:center; align-items:center; gap:6px; height:150px; margin:6px 0 4px;}
+.wheelHighlight{position:absolute; left:0; right:0; top:55px; height:40px; border-top:1px solid var(--line); border-bottom:1px solid var(--line); background:rgba(59,130,246,.08); pointer-events:none;}
+.wheelCol{width:64px; height:150px; overflow-y:scroll; scroll-snap-type:y mandatory; position:relative; -webkit-overflow-scrolling:touch; touch-action:pan-y; overscroll-behavior:contain;}
+.wheelItem{height:40px; display:flex; align-items:center; justify-content:center; font-size:19px; scroll-snap-align:center; color:var(--muted); font-weight:700;}
+.wheelUnit{font-size:14px; color:var(--muted); align-self:center;}
+
+/* ===== 予定・実績の縦バー ===== */
+.paintPalette{display:flex; gap:6px; margin-bottom:8px; flex-wrap:wrap;}
+.swatch{width:30px; height:30px; border-radius:8px; border:2px solid transparent;}
+.swatch.sel{border-color:var(--ink);}
+.vbarsWrap{display:flex; gap:6px; align-items:flex-start;}
+.hourLabels{display:flex; flex-direction:column; width:24px; flex-shrink:0;}
+.hourLabels .h{height:48px; font-size:9px; color:var(--muted); display:flex; align-items:flex-start; padding-top:1px;}
+.vbarCol{display:flex; flex-direction:column; border-radius:8px; overflow:hidden; background:var(--surface2); user-select:none; touch-action:none;}
+.vbarCol .seg{height:8px; border-bottom:1px solid var(--bg); position:relative;}
+.vbarCol .seg:nth-child(6n){border-bottom:1px solid var(--line);}
+.noteDot{position:absolute; right:2px; top:1px; width:3px; height:3px; border-radius:50%; background:#fff;}
+
+/* ===== カレンダー ===== */
+.calHead{display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;}
+.calGrid{display:grid; grid-template-columns:repeat(7,1fr); gap:4px;}
+.calCell{aspect-ratio:1; border-radius:8px; background:var(--surface2); display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:11px; position:relative;}
+.calCell.other{opacity:.25;}
+.calCell.today{outline:2px solid #3b82f6;}
+.calCell.sel{background:#3b82f6; color:#fff;}
+.calCell .dot{width:6px; height:6px; border-radius:50%; margin-top:2px;}
+
+/* ===== 統計バー ===== */
+.statRow{display:flex; align-items:center; gap:10px; margin-bottom:10px;}
+.statName{width:56px; font-size:12px; flex:none; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.statBarBg{flex:1; height:14px; background:var(--surface2); border-radius:7px; overflow:hidden;}
+.statBarFg{height:100%; border-radius:7px; transition:width .5s ease;}
+.statMin{width:52px; text-align:right; font-size:11px; color:var(--muted);}
+.goalBarBg{height:16px; background:var(--surface2); border-radius:8px; overflow:hidden; margin-top:8px;}
+.goalBarFg{height:100%; background:linear-gradient(90deg,#3b82f6,#22c55e); transition:width .5s ease;}
+
+.toast{position:fixed; left:50%; bottom:100px; transform:translateX(-50%) translateY(20px); background:var(--ink); color:#14161b; padding:10px 18px; border-radius999px; font-size:13px; font-weight:700; opacity:0; transition:.3s; z-index:80; pointer-events:none;}
+.toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+
+textarea{width:100%; font-family:monospace; font-size:11px; border-radius:var(--rs); padding:10px; background:var(--surface2); color:var(--ink); border:1px solid var(--line); resize:none;}
+.matCard{border-left:5px solid var(--all); padding:12px 14px; border-radius:10px; background:var(--surface2); margin-bottom:10px; position:relative;}
+.matProg{height:8px; background:var(--surface); border-radius:4px; overflow:hidden; margin-top:8px;}
+.matProgFg{height:100%;}
+.small{font-size:12px; color:var(--muted);}
+.rowBetween{display:flex; justify-content:space-between; align-items:center; gap:8px;}
+.addToggle{display:flex; align-items:center; justify-content:center; gap:6px; width:100%; padding:14px; border-radius:14px; background:var(--surface2); font-weight:700; font-size:14px; margin-bottom:10px;}
+.addToggle:active{transform:scale(.98);}
+.addPanel{display:none;}
+.addPanel.open{display:block; animation:fadein .2s ease;}
+.subjRow{display:flex; align-items:center; gap:8px; padding:8px 0; border-bottom:1px solid var(--line);}
+.subjRow:last-child{border-bottom:none;}
+.subjDot{width:14px; height:14px; border-radius:50%; flex-shrink:0;}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+  <div class="topbar">
+    <div class="date" id="hdrDate">-</div>
+    <div class="sub">今日もコツコツ</div>
+  </div>
+
+  <div class="view active" id="view-home">
+    <div class="card timerWrap">
+      <div class="ring">
+        <svg width="200" height="200" viewBox="0 0 200 200">
+          <circle class="bg" cx="100" cy="100" r="88"></circle>
+          <circle class="fg" id="ringFg" cx="100" cy="100" r="88"></circle>
+        </svg>
+        <div class="label"><div class="t" id="timerText">25:00</div><div class="s">集中タイム</div></div>
+      </div>
+      <div class="timerDone" id="timerDoneMsg"></div>
+      <div class="timerBtns">
+        <button class="pill primary" id="btnTimerToggle">スタート</button>
+        <button class="pill" id="btnTimerRecord" style="display:none; background:#22c55e; color:#fff;">記録</button>
+        <button class="pill ghost" id="btnTimerReset">リセット</button>
+      </div>
+    </div>
+
+    <button class="recordBtn" id="btnOpenRecord">✏️ 記録する</button>
+
+    <div class="card" style="margin-top:14px;">
+      <h3>今日のやること</h3>
+      <div id="todoList"></div>
+      <div class="todoAdd"><input id="todoInput" placeholder="やることを追加"><button class="roundBtn" id="btnTodoAdd">＋</button></div>
+    </div>
+  </div>
+
+  <div class="view" id="view-cal">
+    <div class="card">
+      <div class="calHead">
+        <button class="pill ghost" id="calPrev">←</button>
+        <h3 id="calTitle">-</h3>
+        <button class="pill ghost" id="calNext">→</button>
+      </div>
+      <div class="calGrid" id="calGrid"></div>
+      <button class="pill ghost" id="calModeToggle" style="width:100%; margin-top:10px;">1ヶ月表示</button>
+      <p class="small" style="margin:10px 2px 0;">日付をタップで選択、もう一度素早くタップ（ダブルタップ）でその日の記録一覧を開きます</p>
+    </div>
+
+    <div class="card">
+      <div class="rowBetween">
+        <h3 style="font-size:14px;">1日の予定と記録</h3>
+        <span class="small" id="dayBarsDate">-</span>
+      </div>
+      <p class="small" style="margin:8px 0;">タップで塗る／同じマスをもう一度なぞると消えます／すばやく2回タップで予定・実績にメモを追加</p>
+      <div class="paintPalette" id="paintPalette"></div>
+      <div class="vbarsWrap">
+        <div class="hourLabels" id="hourLabels"></div>
+        <div style="flex:1;">
+          <div class="small" style="text-align:center; margin-bottom:4px;">予定</div>
+          <div class="vbarCol" id="planBar"></div>
+        </div>
+        <div style="flex:1;">
+          <div class="small" style="text-align:center; margin-bottom:4px;">実際</div>
+          <div class="vbarCol" id="actualBar"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="view" id="view-mat">
+    <button class="addToggle" id="matAddToggle">＋ 教材を追加</button>
+    <div class="card addPanel" id="matAddPanel">
+      <div class="field"><label>教科</label><select id="matSubject"></select></div>
+      <div class="field"><label>教材名</label><input id="matName" placeholder="例：ターゲット1900"></div>
+      <p class="small" style="margin:-6px 0 10px;">ページ・日付をすべて入力すると、忘却曲線に基づく復習計画が自動作成されます（教材名だけでも追加できます）</p>
+      <div class="field row2">
+        <div><label>開始ページ（任意）</label><input id="matStartPage" type="number" min="1" placeholder="1"></div>
+        <div><label>終了ページ（任意）</label><input id="matEndPage" type="number" min="1" placeholder="300"></div>
+      </div>
+      <div class="field row2">
+        <div><label>開始日（任意）</label><input id="matStart" type="date"></div>
+        <div><label>終了日（任意）</label><input id="matEnd" type="date"></div>
+      </div>
+      <button class="saveBtn" id="btnAddMat">追加する</button>
+    </div>
+    <div id="matList"></div>
+  </div>
+
+  <div class="view" id="view-stat">
+    <div class="card">
+      <div class="rowBetween"><h3 id="statTitle">今週の記録</h3>
+        <button class="pill ghost" id="statToggle">先週</button>
+      </div>
+      <div id="statBars" style="margin-top:14px;"></div>
+      <div class="small" id="statTotal" style="margin-top:6px;"></div>
+    </div>
+    <div class="card">
+      <div class="rowBetween"><h3>週の目標</h3></div>
+      <div class="field" style="margin-top:10px;"><label>目標時間（分）</label><input id="goalInput" type="number" min="0" step="10"></div>
+      <div class="goalBarBg"><div class="goalBarFg" id="goalBarFg" style="width:0%"></div></div>
+      <div class="small" id="goalText" style="margin-top:6px;"></div>
+    </div>
+  </div>
+
+  <div class="view" id="view-set">
+    <div class="card">
+      <h3>教科を追加</h3>
+      <p class="small">名前だけで追加できます（色は自動で割り当てられます）</p>
+      <div class="todoAdd"><input id="subjInput" placeholder="教科名（例：情報）"><button class="roundBtn" id="btnSubjAdd">＋</button></div>
+      <div id="subjList" style="margin-top:10px;"></div>
+    </div>
+    <div class="card">
+      <h3>バックアップ</h3>
+      <p class="small">データは保存のたびに自動で二重保存されています。さらに下のコードをコピーしてメモ帳などに保存しておくと安心です。</p>
+      <textarea id="backupOut" rows="4" readonly></textarea>
+      <button class="pill ghost" id="btnCopyBackup" style="margin-top:8px;">コードをコピー</button>
+    </div>
+    <div class="card">
+      <h3>復元する</h3>
+      <textarea id="restoreIn" rows="4" placeholder="保存しておいたコードを貼り付け"></textarea>
+      <button class="pill ghost" id="btnRestore" style="margin-top:8px;">復元する</button>
+    </div>
+    <div class="card">
+      <h3>データを消去</h3>
+      <button class="pill ghost" id="btnReset" style="color:#e2574c;">すべて削除する</button>
+    </div>
+  </div>
+
+  <div class="nav">
+    <button class="navBtn active" data-view="home"><div class="ic">🏠</div>ホーム</button>
+    <button class="navBtn" data-view="cal"><div class="ic">📅</div>カレンダー</button>
+    <button class="navBtn" data-view="mat"><div class="ic">📚</div>教材</button>
+    <button class="navBtn" data-view="stat"><div class="ic">📊</div>統計</button>
+    <button class="navBtn" data-view="set"><div class="ic">⚙️</div>設定</button>
+  </div>
+</div>
+
+<div class="modalBg" id="recordModalBg">
+  <div class="modal">
+    <div class="closeX" data-close="recordModalBg">✕</div>
+    <h3>学習を記録</h3>
+    <div class="field row2">
+      <div><label>日付</label><input id="rDate" type="date"></div>
+      <div><label>開始時刻</label><input id="rStart" type="time"></div>
+    </div>
+    <div class="field"><label>学習時間</label>
+      <div class="wheelWrap">
+        <div class="wheelHighlight"></div>
+        <div class="wheelCol" id="wheelHour"></div>
+        <div class="wheelUnit">時間</div>
+        <div class="wheelCol" id="wheelMin"></div>
+        <div class="wheelUnit">分</div>
+      </div>
+    </div>
+    <div class="field"><label>教科</label><div class="subjTabs" id="rSubjTabs"></div></div>
+    <div class="field" id="rMatWrap" style="display:none;"><label>教材</label><select id="rMat"></select></div>
+    <button class="saveBtn" id="btnSaveRecord">保存する</button>
+  </div>
+</div>
+
+<div class="modalBg" id="dayModalBg">
+  <div class="modal">
+    <div class="closeX" data-close="dayModalBg">✕</div>
+    <h3 id="dayModalTitle">-</h3>
+    <div id="dayModalSessions"></div>
+    <button class="saveBtn" id="btnDayModalAdd" style="margin-top:10px;">＋ 記録を追加</button>
+  </div>
+</div>
+
+<div class="modalBg" id="noteModalBg">
+  <div class="modal">
+    <div class="closeX" data-close="noteModalBg">✕</div>
+    <h3 id="noteModalTitle">メモを入力</h3>
+    <div class="field" style="margin-top:10px;">
+      <textarea id="noteInputText" rows="4" placeholder="この10分間の学習内容やメモなどを入力" style="font-size:14px; width:100%; border-radius:var(--rs); padding:10px;"></textarea>
+    </div>
+    <button class="saveBtn" id="btnSaveNote">保存する</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ===================== 定数・ユーティリティ ===================== */
+const FIXED_SUBJECTS=[
+  {id:"all",name:"まとめて",color:"#8a8f98"},
+  {id:"jp",name:"国語",color:"#e2574c"},
+  {id:"math",name:"数学",color:"#3b82f6"},
+  {id:"en",name:"英語",color:"#eab308"},
+  {id:"sci",name:"理科",color:"#22c55e"},
+  {id:"soc",name:"社会",color:"#8b5cf6"},
+];
+const CUSTOM_PALETTE=["#14b8a6","#f97316","#64748b","#84cc16","#ec4899","#0ea5e9","#f43f5e","#a855f7"];
+const REVIEW_DAYS=[1,3,7,14,30]; 
+
+function getSubjects(){ return FIXED_SUBJECTS.concat(DB.customSubjects||[]); }
+function subjOf(id){ return getSubjects().find(s=>s.id===id) || FIXED_SUBJECTS[0]; }
+function textOnColor(hex){ return hex==="#eab308" ? "#20232b" : "#fff"; }
+
+const todayKey = (d=new Date()) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+const dowJp=["日","月","火","水","木","金","土"];
+const fmtDateJp = k => { const d=new Date(k+"T00:00:00"); return `${d.getMonth()+1}月${d.getDate()}日(${dowJp[d.getDay()]})`; };
+const diffDays = (a,b) => Math.round((new Date(b+"T00:00:00") - new Date(a+"T00:00:00"))/86400000);
+const addDays = (k,n) => { const d=new Date(k+"T00:00:00"); d.setDate(d.getDate()+n); return todayKey(d); };
+const timeToMin = t => { const [h,m]=t.split(":").map(Number); return h*60+m; };
+
+/* ===================== データ層（二重バックアップ） ===================== */
+const DB_KEY="sl2_data", DB_BACKUP_KEY="sl2_data_backup";
+function loadDB(){
+  let raw = localStorage.getItem(DB_KEY) || localStorage.getItem(DB_BACKUP_KEY);
+  let data; try{ data = raw?JSON.parse(raw):null; }catch{ data=null; }
+  data = data || {};
+  data.sessions = data.sessions || [];
+  data.todos = data.todos || {};
+  data.materials = data.materials || [];
+  data.dayPlans = data.dayPlans || {};
+  data.dayNotes = data.dayNotes || {};
+  data.customSubjects = data.customSubjects || [];
+  data.weeklyGoalMin = data.weeklyGoalMin ?? 300;
+  return data;
+}
+let DB = loadDB();
+function saveDB(){
+  const raw = JSON.stringify(DB);
+  try{ localStorage.setItem(DB_KEY, raw); }catch{}
+  try{ localStorage.setItem(DB_BACKUP_KEY, raw); }catch{}
+}
+
+/* ===================== 画面共通 ===================== */
+function toast(msg){
+  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(toast._tm); toast._tm=setTimeout(()=>t.classList.remove('show'),1800);
+}
+function openModal(id){ document.getElementById(id).classList.add('show'); }
+function closeModal(id){ document.getElementById(id).classList.remove('show'); }
+document.querySelectorAll('[data-close]').forEach(el=>el.onclick=()=>closeModal(el.dataset.close));
+
+/* ===================== ナビゲーション ===================== */
+document.querySelectorAll('.navBtn').forEach(btn=>{
+  btn.onclick=()=>{
+    document.querySelectorAll('.navBtn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('view-'+btn.dataset.view).classList.add('active');
+    if(btn.dataset.view==='cal') renderCalendar();
+    if(btn.dataset.view==='mat'){ refreshMatSubjectOptions(); renderMaterials(); }
+    if(btn.dataset.view==='stat') renderStats();
+    if(btn.dataset.view==='set') renderSubjList();
+  };
+});
+
+/* ===================== ヘッダー ===================== */
+function renderHeader(){ document.getElementById('hdrDate').textContent = fmtDateJp(todayKey()); }
+
+/* ===================== タイマー ===================== */
+const TIMER_TOTAL=25*60;
+let timerLeft=TIMER_TOTAL, timerRunning=false, timerHandle=null, timerStartClock=null, timerElapsed=0;
+const ringFg=document.getElementById('ringFg'), CIRC=2*Math.PI*88;
+ringFg.setAttribute('stroke-dasharray', CIRC);
+
+function renderTimer(){
+  const m=Math.floor(timerLeft/60), s=timerLeft%60;
+  document.getElementById('timerText').textContent = `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+  const prog = 1 - timerLeft/TIMER_TOTAL;
+  ringFg.style.strokeDashoffset = CIRC*(1-prog);
+  ringFg.style.stroke = timerRunning ? "#3b82f6" : "#565c68";
+
+  const recBtn = document.getElementById('btnTimerRecord');
+  if(timerElapsed > 0 && !timerRunning) {
+    recBtn.style.display = 'inline-block';
+  } else {
+    recBtn.style.display = 'none';
+  }
+}
+
+document.getElementById('btnTimerToggle').onclick=()=>{
+  if(!timerRunning){
+    timerRunning=true;
+    if(!timerStartClock) timerStartClock=new Date();
+    document.getElementById('btnTimerToggle').textContent="一時停止";
+    document.getElementById('timerDoneMsg').textContent="";
+    timerHandle=setInterval(()=>{
+      timerLeft--; timerElapsed++;
+      renderTimer();
+      if(timerLeft<=0){
+        clearInterval(timerHandle); timerRunning=false;
+        document.getElementById('btnTimerToggle').textContent="スタート";
+        document.getElementById('timerDoneMsg').textContent="25分たちました。キリのよいところで記録しましょう";
+        renderTimer();
+      }
+    },1000);
+  } else {
+    timerRunning=false; clearInterval(timerHandle);
+    document.getElementById('btnTimerToggle').textContent="再開";
+    renderTimer();
+  }
+};
+document.getElementById('btnTimerReset').onclick=()=>{
+  clearInterval(timerHandle); timerRunning=false; timerLeft=TIMER_TOTAL; timerElapsed=0; timerStartClock=null;
+  document.getElementById('btnTimerToggle').textContent="スタート";
+  document.getElementById('timerDoneMsg').textContent="";
+  renderTimer();
+};
+document.getElementById('btnTimerRecord').onclick=()=>{
+  openRecordModal(todayKey());
+};
+renderTimer();
+
+/* ===================== Todo ===================== */
+function todosOfToday(){ const k=todayKey(); if(!DB.todos[k]) DB.todos[k]=[]; return DB.todos[k]; }
+function renderTodos(){
+  const list=todosOfToday();
+  const el=document.getElementById('todoList');
+  el.innerHTML = list.length? list.map((t,i)=>`
+    <div class="todoRow ${t.done?'done':''}">
+      <div class="chk ${t.done?'on':''}" data-i="${i}">${t.done?'✓':''}</div>
+      <div class="tx">${t.text}</div>
+      <div class="iconDel" data-del="${i}">✕</div>
+    </div>`).join('') : `<div class="small">やることを追加しましょう</div>`;
+  el.querySelectorAll('.chk').forEach(c=>c.onclick=()=>{ list[+c.dataset.i].done=!list[+c.dataset.i].done; saveDB(); renderTodos(); });
+  el.querySelectorAll('[data-del]').forEach(c=>c.onclick=()=>{ list.splice(+c.dataset.del,1); saveDB(); renderTodos(); });
+}
+document.getElementById('btnTodoAdd').onclick=()=>{
+  const inp=document.getElementById('todoInput'); if(!inp.value.trim()) return;
+  todosOfToday().push({text:inp.value.trim(), done:false}); inp.value=''; saveDB(); renderTodos();
+};
+document.getElementById('todoInput').addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('btnTodoAdd').click(); });
+
+/* ===================== 時間ホイールピッカー ===================== */
+const WHEEL_ITEM_H=40, WHEEL_PAD=55;
+function buildWheel(container, items, initialValue){
+  container.innerHTML = `<div style="height:${WHEEL_PAD}px"></div>` +
+    items.map(v=>`<div class="wheelItem" data-v="${v}">${String(v).padStart(2,'0')}</div>`).join('') +
+    `<div style="height:${WHEEL_PAD}px"></div>`;
+  const idx = Math.max(0, items.indexOf(initialValue));
+  container.scrollTop = idx*WHEEL_ITEM_H;
+  container.querySelectorAll('.wheelItem').forEach((el,i)=>el.onclick=()=>{ container.scrollTo({top:i*WHEEL_ITEM_H, behavior:'smooth'}); });
+}
+function getWheelValue(container, items){
+  const idx = Math.round(container.scrollTop/WHEEL_ITEM_H);
+  return items[Math.max(0, Math.min(items.length-1, idx))];
+}
+const HOUR_ITEMS=[...Array(10).keys()]; 
+const MIN_ITEMS=[...Array(60).keys()]; 
+
+/* ===================== 記録モーダル ===================== */
+function buildSubjTabs(container, selectedId, onPick){
+  container.innerHTML = getSubjects().map(s=>`<div class="stab ${s.id===selectedId?'active':''}" style="background:${s.color}; color:${textOnColor(s.color)}" data-id="${s.id}">${s.name}</div>`).join('');
+  container.querySelectorAll('.stab').forEach(t=>t.onclick=()=>{
+    container.querySelectorAll('.stab').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    onPick(t.dataset.id);
+  });
+}
+let rSubject="all";
+function refreshMatSelectForRecord(){
+  const wrap=document.getElementById('rMatWrap'), sel=document.getElementById('rMat');
+  const mats = DB.materials.filter(m=>m.subjectId===rSubject);
+  if(!mats.length){ wrap.style.display='none'; return; }
+  wrap.style.display='block';
+  sel.innerHTML = `<option value="">なし</option>` + mats.map(m=>`<option value="${m.id}">${m.name}</option>`).join('');
+}
+function openRecordModal(presetDate){
+  const now=new Date();
+  document.getElementById('rDate').value = presetDate || todayKey();
+  document.getElementById('rStart').value = timerStartClock ? `${String(timerStartClock.getHours()).padStart(2,'0')}:${String(timerStartClock.getMinutes()).padStart(2,'0')}` : `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  const elapsedMin = timerElapsed>0 ? Math.max(1,Math.round(timerElapsed/60)) : 25;
+  buildWheel(document.getElementById('wheelHour'), HOUR_ITEMS, Math.floor(elapsedMin/60));
+  buildWheel(document.getElementById('wheelMin'), MIN_ITEMS, elapsedMin%60);
+  rSubject="all";
+  buildSubjTabs(document.getElementById('rSubjTabs'), rSubject, id=>{ rSubject=id; refreshMatSelectForRecord(); });
+  refreshMatSelectForRecord();
+  openModal('recordModalBg');
+}
+document.getElementById('btnOpenRecord').onclick=()=>openRecordModal(todayKey());
+document.getElementById('btnDayModalAdd').onclick=()=>{ closeModal('dayModalBg'); openRecordModal(selectedCalDate); };
+document.getElementById('btnSaveRecord').onclick=()=>{
+  const date=document.getElementById('rDate').value, start=document.getElementById('rStart').value;
+  const h=getWheelValue(document.getElementById('wheelHour'), HOUR_ITEMS);
+  const m=getWheelValue(document.getElementById('wheelMin'), MIN_ITEMS);
+  const min = h*60+m;
+  if(!date||!start||!min){ toast('入力を確認してください'); return; }
+  const matId = document.getElementById('rMat').value || null;
+  DB.sessions.push({id:Date.now(), date, startTime:start, minutes:min, subjectId:rSubject, materialId:matId});
+  saveDB(); closeModal('recordModalBg'); toast('記録しました 🎉');
+  timerElapsed=0; timerStartClock=null;
+  renderTodos();
+  renderTimer();
+  if(document.getElementById('view-cal').classList.contains('active')){ renderCalendar(); }
+};
+
+/* ===================== カレンダー ===================== */
+let calCursor = new Date();
+let calMode = 'week'; 
+let selectedCalDate = todayKey();
+let lastTapKey = null, lastTapTime = 0;
+
+function startOfWeek(dateObj){
+  const d=new Date(dateObj); const day=d.getDay();
+  d.setDate(d.getDate() + (day===0?-6:1-day)); d.setHours(0,0,0,0);
+  return d;
+}
+function calCellHtml(d, key){
+  const mins = DB.sessions.filter(s=>s.date===key).reduce((a,s)=>a+s.minutes,0);
+  const dot = mins>0 ? `<div class="dot" style="background:${mins>=60?'#22c55e':'#eab308'}"></div>` : '';
+  const cls = key===selectedCalDate ? 'sel' : (key===todayKey()?'today':'');
+  return `<div class="calCell ${cls}" data-key="${key}">${d}${dot}</div>`;
+}
+function renderCalendar(){
+  const grid=document.getElementById('calGrid');
+  if(calMode==='week'){
+    const mon = startOfWeek(calCursor);
+    const sun = new Date(mon); sun.setDate(mon.getDate()+6);
+    document.getElementById('calTitle').textContent = `${mon.getMonth()+1}/${mon.getDate()} 〜 ${sun.getMonth()+1}/${sun.getDate()}`;
+    grid.innerHTML = [...Array(7).keys()].map(i=>{
+      const d=new Date(mon); d.setDate(mon.getDate()+i);
+      return calCellHtml(d.getDate(), todayKey(d));
+    }).join('');
+  } else {
+    const y=calCursor.getFullYear(), m=calCursor.getMonth();
+    document.getElementById('calTitle').textContent = `${y}年${m+1}月`;
+    const startDow = new Date(y,m,1).getDay();
+    const daysInMonth = new Date(y,m+1,0).getDate();
+    const cells=[]; for(let i=0;i<startDow;i++) cells.push(null); for(let d=1; d<=daysInMonth; d++) cells.push(d);
+    grid.innerHTML = cells.map(d=>{
+      if(!d) return `<div class="calCell other"></div>`;
+      const key = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      return calCellHtml(d, key);
+    }).join('');
+  }
+  grid.querySelectorAll('.calCell[data-key]').forEach(c=>{
+    c.onclick=()=>{
+      const key=c.dataset.key, now=Date.now();
+      if(lastTapKey===key && now-lastTapTime<350){
+        lastTapKey=null;
+        openDayModal(key);
+        return;
+      }
+      lastTapKey=key; lastTapTime=now;
+      selectedCalDate=key;
+      renderCalendar();
+    };
+  });
+  document.getElementById('dayBarsDate').textContent = fmtDateJp(selectedCalDate);
+  renderDayBars(selectedCalDate);
+}
+
+function openDayModal(key){
+  document.getElementById('dayModalTitle').textContent = fmtDateJp(key);
+  renderDayModalSessions(key);
+  openModal('dayModalBg');
+}
+function renderDayModalSessions(key){
+  const sessions = DB.sessions.filter(s=>s.date===key).sort((a,b)=>a.startTime.localeCompare(b.startTime));
+  const el=document.getElementById('dayModalSessions');
+  el.innerHTML = sessions.length ? sessions.map(s=>`
+    <div class="rowBetween" style="padding:7px 0; border-bottom:1px solid var(--line);">
+      <div style="font-size:13px;"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${subjOf(s.subjectId).color};margin-right:6px;"></span>${s.startTime} / ${s.minutes}分 / ${subjOf(s.subjectId).name}</div>
+      <div class="iconDel" data-sid="${s.id}">✕</div>
+    </div>`).join('') : `<div class="small">記録はまだありません</div>`;
+  el.querySelectorAll('[data-sid]').forEach(x=>x.onclick=()=>{
+    DB.sessions = DB.sessions.filter(s=>s.id!=x.dataset.sid); saveDB();
+    renderDayModalSessions(key); renderCalendar();
+  });
+}
+document.getElementById('calPrev').onclick=()=>{
+  if(calMode==='week') calCursor.setDate(calCursor.getDate()-7); else calCursor.setMonth(calCursor.getMonth()-1);
+  renderCalendar();
+};
+document.getElementById('calNext').onclick=()=>{
+  if(calMode==='week') calCursor.setDate(calCursor.getDate()+7); else calCursor.setMonth(calCursor.getMonth()+1);
+  renderCalendar();
+};
+document.getElementById('calModeToggle').onclick=(e)=>{
+  calMode = calMode==='week' ? 'month' : 'week';
+  e.target.textContent = calMode==='week' ? '1ヶ月表示' : '1週間表示';
+  renderCalendar();
+};
+
+/* ===================== バー管理 & メモ（自作ダイアログ対応） ===================== */
+const DAY_SLOTS=144; 
+let paintSubject="jp";
+let barLastTap={i:null, type:null, t:0};
+let currentNoteKey=null, currentNoteSlot=null;
+
+function dayPlanOf(key){
+  if(!DB.dayPlans[key] || DB.dayPlans[key].length!==DAY_SLOTS) DB.dayPlans[key]=Array(DAY_SLOTS).fill(null);
+  return DB.dayPlans[key];
+}
+function dayNotesOf(key){
+  if(!DB.dayNotes[key]) DB.dayNotes[key]={};
+  return DB.dayNotes[key];
+}
+
+function editSlotNoteCustom(key, i, type) {
+  currentNoteKey = key;
+  currentNoteSlot = `${type}_${i}`;
+  const notes = dayNotesOf(key);
+  const currentText = notes[currentNoteSlot] || '';
+  
+  document.getElementById('noteModalTitle').textContent = `${type === 'plan' ? '予定' : '実績'}のメモ (${Math.floor(i/6)}時${(i%6)*10}分〜)`;
+  document.getElementById('noteInputText').value = currentText;
+  openModal('noteModalBg');
+}
+
+document.getElementById('btnSaveNote').onclick = () => {
+  const text = document.getElementById('noteInputText').value.trim();
+  const notes = dayNotesOf(currentNoteKey);
+  if (text) {
+    notes[currentNoteSlot] = text;
+  } else {
+    delete notes[currentNoteSlot];
+  }
+  saveDB();
+  closeModal('noteModalBg');
+  renderDayBars(currentNoteKey);
+};
+
+function renderDayBars(key){
+  const palette=document.getElementById('paintPalette');
+  palette.innerHTML = getSubjects().filter(s=>s.id!=='all').map(s=>`<div class="swatch ${s.id===paintSubject?'sel':''}" style="background:${s.color}" data-id="${s.id}"></div>`).join('');
+  palette.querySelectorAll('.swatch').forEach(sw=>sw.onclick=()=>{ paintSubject=sw.dataset.id; palette.querySelectorAll('.swatch').forEach(x=>x.classList.remove('sel')); sw.classList.add('sel'); });
+
+  const plan = dayPlanOf(key);
+  const notes = dayNotesOf(key);
+
+  const sessions = DB.sessions.filter(s=>s.date===key);
+  const actual = Array(DAY_SLOTS).fill(null);
+  sessions.forEach(s=>{
+    const startSlot = Math.floor(timeToMin(s.startTime)/10);
+    const count = Math.max(1, Math.ceil(s.minutes/10));
+    for(let i=startSlot; i<Math.min(DAY_SLOTS,startSlot+count); i++) actual[i]=s.subjectId;
+  });
+
+  const planBar=document.getElementById('planBar');
+  const actualBar=document.getElementById('actualBar');
+
+  const segHtml=(v,i,type)=>{
+    let bg = 'transparent';
+    if(v) {
+      bg = subjOf(v).color;
+    } else {
+      const h = Math.floor(i/6);
+      bg = (h % 2 === 0) ? '#1d2027' : '#262a33'; 
+    }
+    const noteKey = `${type}_${i}`;
+    return `<div class="seg" data-i="${i}" data-type="${type}" style="background:${bg}">${notes[noteKey]?'<span class="noteDot"></span>':''}</div>`;
+  };
+
+  planBar.innerHTML = plan.map((v,i)=>segHtml(v,i,'plan')).join('');
+  actualBar.innerHTML = actual.map((v,i)=>segHtml(v,i,'actual')).join('');
+
+  const paint=(i)=>{
+    plan[i] = (plan[i]===paintSubject) ? null : paintSubject;
+    saveDB();
+    planBar.children[i].outerHTML = segHtml(plan[i], i, 'plan');
+  };
+
+  const handleBarTap=(i, type)=>{
+    const now=Date.now();
+    if(barLastTap.i===i && barLastTap.type===type && now-barLastTap.t<350){
+      barLastTap={i:null, type:null, t:0};
+      editSlotNoteCustom(key, i, type);
+      return true;
+    }
+    barLastTap={i, type, t:now};
+    return false;
+  };
+
+  planBar.onmousedown = e=>{ if(e.target.dataset.i==null) return; const i=+e.target.dataset.i; if(handleBarTap(i, 'plan')) return; paint(i); };
+  planBar.onmousemove = e=>{ if(e.buttons===1 && e.target.dataset.i!=null && e.target.dataset.type==='plan') paint(+e.target.dataset.i); };
+  planBar.ontouchstart = e=>{ const t=e.touches[0]; const el2=document.elementFromPoint(t.clientX,t.clientY); if(!el2||el2.dataset.i==null || el2.dataset.type!=='plan') return; const i=+el2.dataset.i; if(handleBarTap(i, 'plan')) return; paint(i); };
+  planBar.ontouchmove = e=>{ e.preventDefault(); const t=e.touches[0]; const el2=document.elementFromPoint(t.clientX,t.clientY); if(el2 && el2.dataset.i!=null && el2.dataset.type==='plan') paint(+el2.dataset.i); };
+
+  actualBar.onmousedown = e=>{ if(e.target.dataset.i==null) return; const i=+e.target.dataset.i; handleBarTap(i, 'actual'); };
+  actualBar.ontouchstart = e=>{ const t=e.touches[0]; const el2=document.elementFromPoint(t.clientX,t.clientY); if(!el2||el2.dataset.i==null || el2.dataset.type!=='actual') return; const i=+el2.dataset.i; handleBarTap(i, 'actual'); };
+}
+
+/* ===================== 教材・忘却曲線 ===================== */
+function refreshMatSubjectOptions(){
+  document.getElementById('matSubject').innerHTML = getSubjects().filter(s=>s.id!=='all').map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+}
+document.getElementById('matAddToggle').onclick=()=>{
+  document.getElementById('matAddPanel').classList.toggle('open');
+};
+
+function hasPlan(mat){ return !!(mat.startPage && mat.endPage && mat.startDate && mat.endDate); }
+function matPeriodDays(mat){ return diffDays(mat.startDate, mat.endDate)+1; }
+function matTotalUnits(mat){ return mat.endPage - mat.startPage + 1; }
+function matPer(mat){ return Math.ceil(matTotalUnits(mat)/matPeriodDays(mat)); }
+function newRangeForDay(mat, dayIdx){
+  const per = matPer(mat);
+  const start = mat.startPage + dayIdx*per;
+  if(start>mat.endPage) return null;
+  return [start, Math.min(mat.endPage, start+per-1)];
+}
+function todaysPlanFor(mat, todayK){
+  const idx = diffDays(mat.startDate, todayK);
+  if(idx<0) return {newR:null, reviews:[]};
+  const periodDays = matPeriodDays(mat);
+  const newR = idx<periodDays ? newRangeForDay(mat, idx) : null;
+  const reviews=[];
+  const maxPast = Math.min(idx, periodDays-1);
+  for(let d=0; d<=maxPast; d++){
+    const learnDate = addDays(mat.startDate, d);
+    const gap = diffDays(learnDate, todayK);
+    if(REVIEW_DAYS.includes(gap)){
+      const r = newRangeForDay(mat, d);
+      if(r) reviews.push({range:r, gap});
+    }
+  }
+  return {newR, reviews};
+}
+function renderMaterials(){
+  const tk = todayKey();
+  const el=document.getElementById('matList');
+  el.innerHTML = DB.materials.map(mat=>{
+    const sc = subjOf(mat.subjectId).color;
+    if(!hasPlan(mat)){
+      return `<div class="matCard" style="border-color:${sc}">
+        <div class="rowBetween">
+          <b>${mat.name}</b>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span class="small">${subjOf(mat.subjectId).name}</span>
+            <div class="iconDel" data-mid="${mat.id}">🗑</div>
+          </div>
+        </div>
+        <div class="small" style="margin-top:6px;">ページ・日付が未設定です（復習スケジュールなし）</div>
+      </div>`;
+    }
+    const per = matPer(mat), total = matTotalUnits(mat);
+    const idx = diffDays(mat.startDate, tk);
+    const covered = idx<=0 ? 0 : Math.min(total, idx*per);
+    const pct = Math.round(covered/total*100);
+    const {newR, reviews} = todaysPlanFor(mat, tk);
+    return `<div class="matCard" style="border-color:${sc}">
+      <div class="rowBetween">
+        <b>${mat.name}</b>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span class="small">${subjOf(mat.subjectId).name}</span>
+          <div class="iconDel" data-mid="${mat.id}">🗑</div>
+        </div>
+      </div>
+      <div class="small" style="margin-top:4px;">p${mat.startPage}〜p${mat.endPage} ／ ${mat.startDate}〜${mat.endDate}</div>
+      <div class="matProg"><div class="matProgFg" style="width:${pct}%;background:${sc}"></div></div>
+      <div class="small" style="margin-top:6px;">進捗 ${pct}%（1日目安 ${per}）</div>
+      ${newR?`<div style="margin-top:8px; font-size:13px;">📖 今日の新規: p${newR[0]}〜p${newR[1]}</div>`:''}
+      ${reviews.map(r=>`<div style="font-size:13px; color:${sc};">🔁 復習(${r.gap}日前分): p${r.range[0]}〜p${r.range[1]}</div>`).join('')}
+    </div>`;
+  }).join('') || `<div class="small" style="padding:0 4px;">教材を追加すると学習計画が表示されます</div>`;
+  
+  el.querySelectorAll('[data-mid]').forEach(x=>x.onclick=()=>{
+    DB.materials = DB.materials.filter(m=>m.id!==Number(x.dataset.mid)); 
+    saveDB(); 
+    renderMaterials();
+    toast('教材を削除しました');
+  });
+}
+document.getElementById('btnAddMat').onclick=()=>{
+  const name=document.getElementById('matName').value.trim();
+  const subjectId=document.getElementById('matSubject').value;
+  if(!name){ toast('教材名を入力してください'); return; }
+  const spRaw=document.getElementById('matStartPage').value;
+  const epRaw=document.getElementById('matEndPage').value;
+  const start=document.getElementById('matStart').value;
+  const end=document.getElementById('matEnd').value;
+  const allFilled = spRaw && epRaw && start && end;
+  const anyFilled = spRaw || epRaw || start || end;
+  if(anyFilled && !allFilled){ toast('復習計画を作る場合はページ・日付をすべて入力してください'); return; }
+  if(allFilled && (+epRaw < +spRaw || end < start)){ toast('入力内容を確認してください'); return; }
+  DB.materials.push({
+    id:Date.now(), subjectId, name,
+    startPage: allFilled? +spRaw : null, endPage: allFilled? +epRaw : null,
+    startDate: allFilled? start : null, endDate: allFilled? end : null
+  });
+  saveDB(); toast('教材を追加しました');
+  document.getElementById('matName').value=''; document.getElementById('matStartPage').value=''; document.getElementById('matEndPage').value='';
+  document.getElementById('matAddPanel').classList.remove('open');
+  renderMaterials();
+};
+
+/* ===================== 統計 ===================== */
+let statMode="this";
+function weekRange(mode){
+  const d=new Date(); const day=d.getDay();
+  const mon=new Date(d); mon.setDate(d.getDate()+(day===0?-6:1-day)); mon.setHours(0,0,0,0);
+  if(mode==='prev') mon.setDate(mon.getDate()-7);
+  const sun=new Date(mon); sun.setDate(mon.getDate()+6);
+  return [todayKey(mon), todayKey(sun)];
+}
+function renderStats(){
+  document.getElementById('statTitle').textContent = statMode==='this' ? '今週の記録' : '先週の記録';
+  document.getElementById('statToggle').textContent = statMode==='this' ? '先週' : '今週';
+  const [from,to] = weekRange(statMode);
+  const sessions = DB.sessions.filter(s=>s.date>=from && s.date<=to);
+  const subs = getSubjects();
+  const bySubj = {}; subs.forEach(s=>bySubj[s.id]=0);
+  sessions.forEach(s=>bySubj[s.subjectId]=(bySubj[s.subjectId]||0)+s.minutes);
+  const max = Math.max(1, ...Object.values(bySubj));
+  document.getElementById('statBars').innerHTML = subs.map(s=>`
+    <div class="statRow"><div class="statName">${s.name}</div>
+      <div class="statBarBg"><div class="statBarFg" style="width:${(bySubj[s.id]/max*100)}%; background:${s.color}"></div></div>
+      <div class="statMin">${bySubj[s.id]}分</div></div>`).join('');
+  const total = Object.values(bySubj).reduce((a,b)=>a+b,0);
+  document.getElementById('statTotal').textContent = `合計 ${total}分（${(total/60).toFixed(1)}時間）`;
+
+  document.getElementById('goalInput').value = DB.weeklyGoalMin;
+  const thisWeekMins = statMode==='this' ? total : (()=>{
+    const [f2,t2]=weekRange('this'); return DB.sessions.filter(s=>s.date>=f2&&s.date<=t2).reduce((a,s)=>a+s.minutes,0);
+  })();
+  const goalPct = Math.min(100, Math.round(thisWeekMins/Math.max(1,DB.weeklyGoalMin)*100));
+  document.getElementById('goalBarFg').style.width = goalPct+'%';
+  document.getElementById('goalText').textContent = `今週 ${thisWeekMins}分 / 目標 ${DB.weeklyGoalMin}分（${goalPct}%）`;
+}
+document.getElementById('statToggle').onclick=()=>{ statMode = statMode==='this'?'prev':'this'; renderStats(); };
+document.getElementById('goalInput').addEventListener('change', e=>{ DB.weeklyGoalMin = Math.max(0,+e.target.value||0); saveDB(); renderStats(); });
+
+/* ===================== 教科管理（設定） ===================== */
+function renderSubjList(){
+  const el=document.getElementById('subjList');
+  el.innerHTML = `<div class="small" style="margin-bottom:6px;">固定教科</div>` +
+    FIXED_SUBJECTS.map(s=>`<div class="subjRow"><div class="subjDot" style="background:${s.color}"></div><div style="flex:1;">${s.name}</div></div>`).join('') +
+    (DB.customSubjects.length? `<div class="small" style="margin:10px 0 6px;">追加した教科</div>` +
+      DB.customSubjects.map(s=>`<div class="subjRow"><div class="subjDot" style="background:${s.color}"></div><div style="flex:1;">${s.name}</div><div class="iconDel" data-csid="${s.id}">✕</div></div>`).join('') : '');
+  el.querySelectorAll('[data-csid]').forEach(x=>x.onclick=()=>{
+    DB.customSubjects = DB.customSubjects.filter(s=>s.id!=x.dataset.csid); saveDB(); renderSubjList();
+  });
+}
+document.getElementById('btnSubjAdd').onclick=()=>{
+  const inp=document.getElementById('subjInput'); const name=inp.value.trim(); if(!name) return;
+  const color = CUSTOM_PALETTE[DB.customSubjects.length % CUSTOM_PALETTE.length];
+  DB.customSubjects.push({id:'c'+Date.now(), name, color});
+  inp.value=''; saveDB(); renderSubjList(); toast('教科を追加しました');
+};
+
+/* ===================== 設定・バックアップ ===================== */
+function refreshBackupBox(){ document.getElementById('backupOut').value = JSON.stringify(DB); }
+document.getElementById('btnCopyBackup').onclick=async ()=>{
+  refreshBackupBox();
+  const ta=document.getElementById('backupOut');
+  try{ await navigator.clipboard.writeText(ta.value); }catch{ ta.select(); document.execCommand('copy'); }
+  toast('コピーしました');
+};
+document.getElementById('btnRestore').onclick=()=>{
+  const v=document.getElementById('restoreIn').value.trim(); if(!v) return;
+  try{
+    const data=JSON.parse(v);
+    if(!data.sessions) throw 0;
+    DB=loadDBFrom(data); saveDB(); toast('復元しました');
+    renderTodos(); renderCalendar(); renderMaterials(); renderStats(); renderSubjList(); refreshBackupBox();
+  }catch{ toast('コードが正しくありません'); }
+};
+function loadDBFrom(data){
+  data.sessions=data.sessions||[]; data.todos=data.todos||{}; data.materials=data.materials||[];
+  data.dayPlans=data.dayPlans||{}; data.dayNotes=data.dayNotes||{}; data.customSubjects=data.customSubjects||[]; data.weeklyGoalMin=data.weeklyGoalMin??300;
+  return data;
+}
+document.getElementById('btnReset').onclick=()=>{
+  DB={sessions:[], todos:{}, materials:[], dayPlans:{}, dayNotes:{}, customSubjects:[], weeklyGoalMin:300}; saveDB();
+  toast('削除しました'); renderTodos(); renderCalendar(); renderMaterials(); renderStats(); renderSubjList(); refreshBackupBox();
+};
+
+/* ===================== 初期化 ===================== */
+document.getElementById('hourLabels').innerHTML = [...Array(24).keys()].map(h=>`<div class="h">${h}時</div>`).join('');
+renderHeader(); renderTodos(); refreshMatSubjectOptions(); refreshBackupBox();
+</script>
+</body>
+</html>
+
