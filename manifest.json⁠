@@ -1,0 +1,16 @@
+{
+  "short_name": "すたろぐ",
+  "name": "すたろぐ Study Binder",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any"
+    }
+  ],
+  "start_url": "./index.html",
+  "background_color": "#14161b",
+  "display": "standalone",
+  "theme_color": "#14161b"
+}
+
